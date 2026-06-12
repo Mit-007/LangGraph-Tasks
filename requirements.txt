@@ -1,0 +1,13 @@
+python-dotenv
+langchain
+langgraph
+langchain-google-genai
+ddgs
+langchain-experimental
+langchain-pinecone
+pinecone
+langgraph-checkpoint-sqlite
+fastapi
+uvicorn
+tavily-python
+pydantic
