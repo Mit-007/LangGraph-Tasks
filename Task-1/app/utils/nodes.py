@@ -1,19 +1,11 @@
 from app.utils.state import *
 from app.utils.call_llm import call_llm
+from app.utils.logger import logger
+from app.core.constant import *
 
-# =============
-# logger SetUp
-# =============
-import logging
-
-logging.basicConfig(
-    level=logging.ERROR,
-    format="%(asctime)s | %(levelname)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-
-logger = logging.getLogger(__name__)
-
+# ==========
+# input_handler
+# ==========
 def input_handler(state : AgentState)->AgentState:
     try:
         message = state["messages"][-1].strip()
@@ -38,24 +30,46 @@ def input_handler(state : AgentState)->AgentState:
         }
 
 
+# ==========
+# route_after_input_handler
+# ==========
 def route_after_input_handler(state:AgentState)->Literal["responder","summarizer"]:
-    if state['turn_count'] % 5 == 1  and state['turn_count']!= 1:
-        return "summarizer"
-    else :
-        return "responder"
+    try:
+        message = state["messages"][-1].strip()
+
+        if not message:
+            raise ValueError("Message cannot be empty")
+        
+
+        if SUMMARY_COUNTER == 1 :
+            return 'summarizer'
+        
+        elif state['turn_count'] % SUMMARY_COUNTER == 1 and state['turn_count']!= 1:
+            return "summarizer"
+        
+        else :
+            return "responder"
+        
+    except Exception as e:
+        logger.error(f"{e}")
+        return 'responder'
 
 
+# ==========
+# responder
+# ==========
 def responder(state: AgentState) -> AgentState:
     try:
         if (
             not state.get("messages")
             or not state["messages"][-1]
         ):
-            raise ValueError(
-                "Last message is empty. Cannot generate response."
-            )
+            raise ValueError("Last message is empty. Cannot generate response.")
 
         llm = call_llm()
+
+        if not llm:
+            raise ValueError("LLM service is not available.")
 
         prompt = f"""
         You are a helpful AI assistant.
@@ -83,6 +97,11 @@ def responder(state: AgentState) -> AgentState:
         - Neutral: factual questions, requests for information, or unclear emotion.
         - Negative: sadness, frustration, anger, stress, anxiety, disappointment, complaints.
         * If the mood is unclear, choose "neutral".
+
+        Response Style: * If the mood is Positive, begin with a brief cheerful or appreciative acknowledgement, then answer the question. 
+        * If the mood is Negative, begin with a brief empathetic or encouraging sentence, then answer the question. 
+        * If the mood is Neutral, answer the question naturally and directly. 
+        * Keep the acknowledgement or encouragement short and ensure the main focus remains the answer.
         """
 
         structured_llm = llm.with_structured_output(ouput_schema)
@@ -95,84 +114,98 @@ def responder(state: AgentState) -> AgentState:
 
         return {
             "messages": state["messages"],
-            "mood": state["mood"],
+            "mood": state["mood"]
         }
 
     except Exception as e:
-        logger.exception(f"Error in responder: {e}")
+        logger.error(f"Error in responder: {e}")
+
+        # append error message for output refrences
+        state['messages'].append("error occurred")
 
         return {
             "messages": state["messages"],
-            "mood": state["mood"],
+            "mood": state["mood"]
         }
 
 
+# ==========
+# summarizer
+# ==========
 def summarizer(state: AgentState) -> AgentState:
     try:
-        if (
-            not state.get("messages")
-            or not state["messages"][-1]
-        ):
+        if (not state.get("messages")or not state["messages"][-1]):
             raise ValueError(
-                "Last message is empty. Cannot generate response."
+                "given message is empty."
             )
-
+        
         llm = call_llm()
 
-        last_message = state["messages"].pop()
+        if not llm:
+            raise ValueError("LLM service is not available.")
+
+        messages_for_summary = state["messages"][:-1]
 
         structured_llm = llm.with_structured_output(summary_schema)
 
         if state["summary"] == "":
             prompt = f"""
-            You are a conversation summarization assistant.
-
-            Your task is to create a chat summary.
+            You are a conversation summarization assistant responsible for maintaining long-term memory.
+            Your task is to generate a concise yet comprehensive summary of the conversation.
 
             Instructions:
-            Generate as much as Small And usable summary.
+            - Preserve all important facts, decisions, preferences, goals, and context that may be useful in future conversations.
+            - Do not omit any critical information that could affect future responses.
+            - Remove redundant or repetitive details.
+            - Organize the summary logically and clearly.
+            - Keep the summary as concise as possible while retaining all essential information.
 
-            Recent Messages:
-            {state['messages']}
+            Conversation:
+            {messages_for_summary}
             """
         else:
             prompt = f"""
-            You are a conversation summarization assistant.
-
-            Your task is to create an updated chat summary by combining:
-
-            1. The existing conversation summary.
-            2. The most recent chat messages.
-
-            Instructions:
-            Generate as much as Small And usable summary.
+            You are a conversation summarization assistant responsible for maintaining long-term memory. 
+            You are given an existing summary and some new conversation messages. 
+            Update the summary by incorporating any new important information. 
+            
+            Instructions: 
+            - Preserve all important facts from the previous summary. 
+            - Add new preferences, goals, decisions, tasks, and context. 
+            - Remove duplicated information. - Keep the summary well organized. 
+            - Do not invent information. 
+            - Keep the summary compact while preserving every important detail.
 
             Previous Summary:
             {state['summary']}
 
             Recent Messages:
-            {state['messages']}
+            {messages_for_summary}
             """
 
         response = structured_llm.invoke(prompt)
 
         answer = str(response.summary)
 
-        state["messages"].append(last_message)
-
         return {
             "summary": answer,
             "messages": state["messages"],
+            'summary_status' : True
         }
 
     except Exception as e:
-        logger.exception(f"Error in summarizer: {e}")
+        logger.error(f"Error in summarizer: {e}")
 
         return {
             "summary": state["summary"],
             "messages": state["messages"],
+            "summary_status" :False
         }
-    
+
+
+# ==========
+# memory_updater
+# ==========
 def memory_updater(state: AgentState) -> AgentState:
     try:
         if not state["messages"][-1]:
@@ -180,28 +213,36 @@ def memory_updater(state: AgentState) -> AgentState:
             return {
                 "messages": state["messages"]
             }
+        
+        message_list = state["messages"]
+        mood_list = state["mood"]
+        
+        # -----> memory menagement after summary :
 
-        if state["turn_count"] == 1 or state["turn_count"] % 5 != 1:
-            return {}
+        if state["turn_count"] % SUMMARY_COUNTER == 1:
+            # =============
+            #  if some reasone summary not generated then skip the remove message step, till next summary not generated 
+            # ============
+            if state['summary_status'] == True :
+                message_list = state["messages"][-2:]
 
-        message_list = state["messages"][-2:]
 
-        if state["turn_count"] % 10 == 1:
-            return {
-                "messages": message_list,
-                "mood": []
-            }
+        # -----> memory menagement after reach Mood counter limit :
+        if state["turn_count"] % MOOD_HISTORY_COUNTER  == 1:
 
-        if state["turn_count"] % 5 == 1:
-            return {
-                "messages": message_list
-            }
+            if len(state['mood']) > 0 :
+                mood_list = [state['mood'][-1]]
 
-        return {}
+            else :
+                mood_list = []
+
+        return {
+            "messages": message_list,
+            "mood": mood_list,
+            'summary_status' : False
+        }
 
     except Exception as e:
-        logger.exception(f"Error in memory_updater: {e}")
+        logger.error(f"Error in memory_updater: {e}")
 
         return {}
-
-    

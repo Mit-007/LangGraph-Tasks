@@ -4,8 +4,8 @@ from app.services.call_llm import embedding_model
 from langgraph.types import Send
 from langchain_pinecone import PineconeVectorStore
 from app.services.logger import logger
-from app.core.config import INDEX_NAME
-
+from app.core.config import INDEX_NAME ,PINECONE_API_KEY
+from app.core.constant import MAX_SUB_QUERY_FOR_DOC , TOP_K
 
 # ============
 # orchestator_Doc_researcher
@@ -34,12 +34,15 @@ def orchestator_Doc_researcher(state: Doc_researcher_State) -> Doc_researcher_St
         - Cover the essential aspects of the topic.
         - Avoid overlap.
         - Generate only the minimum number of queries needed.
-        - maximum you create 5 sun query.
+        - maximum you create {MAX_SUB_QUERY_FOR_DOC} sub query.
         - if not need more sub query divison then try to avoid it.
 
         Return only a Python list of strings.
         """
 
+        if not llm:
+            raise ValueError("LLM service is not available.")
+        
         structured_llm = llm.with_structured_output(Doc_researcher_llm_sceama)
 
         result = structured_llm.invoke(prompt_orchestator_Doc_researcher)
@@ -101,12 +104,15 @@ def worker_Doc_researcher(state: Doc_researcher_worker_State) -> Doc_researcher_
         if not sub_query:
             raise ValueError("sub_query is empty")
 
+        if not PINECONE_API_KEY:
+            raise ValueError("PINECONE_API_KEY is missing. Please set it in your .env file.")
+
         vectorstore = PineconeVectorStore(
             index_name=INDEX_NAME,
             embedding=embedding_model
         )
 
-        results = vectorstore.similarity_search(sub_query,k=1)
+        results = vectorstore.similarity_search(sub_query,k=TOP_K)
 
         context = "\n\n".join(
             doc.page_content for doc in results
@@ -174,6 +180,9 @@ def aggregater_Doc_researcher(state: Doc_researcher_State) -> Doc_researcher_Sta
         - Include a brief conclusion summarizing the key findings.
         - Return ONLY the final report text.
         """
+
+        if not llm:
+            raise ValueError("LLM service is not available.")
 
         structured_llm = llm.with_structured_output(Doc_researcher_aggregator_sceama)
 

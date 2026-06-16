@@ -65,6 +65,18 @@ Ctrl + C
 This will immediately stop the running application and exit the chat session.
 
 note : Once the End a current session the all messages history are removed. 
+---
+
+## ⚙️ `core/constant.py`
+
+This file contains configurable constants used across the project.
+
+- **`SUMMARY_COUNTER = 5`**
+  - Defines the number of conversation turns after which a new chat summary is generated.
+  - **Note:** This value should always be greater than `1`.
+
+- **`MOOD_HISTORY_COUNTER = 10`**
+  - Defines the number of conversation turns after which the stored mood history is cleared to optimize memory usage.
 
 ---
 # State Schema
@@ -78,6 +90,7 @@ class AgentState(TypedDict):
     turn_count: int
     mood: list[Literal["positive", "neutral", "negative"]]
     answer: str
+    summary_status : bool
 ```
 
 ## Field Explanation
@@ -181,6 +194,18 @@ Example:
 "The capital of India is New Delhi."
 ```
 
+### `summary_status`
+
+```python
+summary_status: bool
+```
+
+In summary turn If any reason Summary was not generated , then prevent the messages
+If true then deleted messages , if False then summary is not generated that way avoid to delete messages
+
+```python
+True
+```
 ---
 
 # Node Explanation
@@ -247,7 +272,7 @@ After `input_handler`, the graph decides whether summarization is required.
 
 ### Condition
 
-After Every 5 valid chat turns the graph routes to:
+After Every 5(SUMMARY_COUNTER) valid chat turns the graph routes to:
 
 ```text
 summarizer
@@ -341,7 +366,7 @@ Only recent messages are retained.
 
 The agent stores mood history.
 
-So Every 10 turns:
+So Every 10(MOOD_HISTORY_COUNTER) turns:
 
 - Old mood history is cleared.
 - A fresh mood tracking cycle begins.

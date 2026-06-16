@@ -5,14 +5,14 @@ from app.utils.subgraph.graph_DB_researcher import DB_researcher_agent
 from app.utils.subgraph.graph_doc_researcher import Doc_researcher_agent
 from app.utils.subgraph.graph_web_researcher import web_researcher_agent
 from app.services.logger import logger
-
+from app.core.config import DB_PATH_OF_COLLECTION
 
 # ==============
 # orchestator
 # ============
 def orchestator(state: MainState) -> MainState:
 
-    logger.info("orchestator Node")
+    logger.info("Node:-orchestator Node")
 
     try:
         orchestator_llm_prompt = f"""
@@ -97,6 +97,9 @@ def orchestator(state: MainState) -> MainState:
         {state['user_input']}
         """
 
+        if not llm:
+            raise ValueError("LLM service is not available.")
+
         structured_llm = llm.with_structured_output(orchestator_llm_schema)
         result = structured_llm.invoke(orchestator_llm_prompt)
 
@@ -160,7 +163,7 @@ def worker(state: WorkerState) -> MainState:
         if researcher_name == 'DB_researcher_agent':
             input_state = {
                 "query": state['query'],
-                "db_path": "app/db/Task_3_data.db",
+                "db_path": DB_PATH_OF_COLLECTION,
                 "sub_querys": [],
                 "schema_of_collection": {},
                 "workers_output": [],
@@ -278,6 +281,9 @@ def aggregater(state: MainState) -> MainState:
 
         Return only the final report as string,
         """
+
+        if not llm:
+            raise ValueError("LLM service is not available.")
 
         structured_llm = llm.with_structured_output(aggregator_llm_schema)
         result = structured_llm.invoke(report_aggregater_prompt)

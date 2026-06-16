@@ -1,9 +1,6 @@
 from langgraph.graph import StateGraph,START,END
-from dotenv import load_dotenv
 from app.utils.state import *
 from app.utils.nodes import *
-
-load_dotenv()
 
 builder = StateGraph(AgentState)
 

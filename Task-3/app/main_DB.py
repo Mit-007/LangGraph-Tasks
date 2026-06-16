@@ -1,5 +1,6 @@
 from app.utils.subgraph.graph_DB_researcher import DB_researcher_agent
-
+from app.core.config import DB_PATH_OF_COLLECTION
+import uuid
 while(True):
 
     print("============================================== Start =================================================================================")
@@ -8,7 +9,7 @@ while(True):
 
     input_state = {
         "query" : user_input,
-        "db_path" :"app/db/Task_3_data.db",
+        "db_path" :DB_PATH_OF_COLLECTION,
         "sub_querys" : [],
         "schema_of_collection" : {},
         "workers_output" :[],
@@ -18,7 +19,12 @@ while(True):
     if user_input.lower() == "exit":
         break
 
-    config = {"configurable": {"thread_id": "thread-1"}}
+    config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+
+    print("\n---------------")
+    print("|🆔 thread_id |")
+    print("---------------")
+    print(config['configurable']['thread_id'])
 
     result = DB_researcher_agent.invoke(input_state,config)
 

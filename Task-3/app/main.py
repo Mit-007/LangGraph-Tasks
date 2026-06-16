@@ -1,4 +1,5 @@
 from app.agent import researcher_agent
+import uuid
 
 while(True):
 
@@ -10,13 +11,18 @@ while(True):
         'user_input' : user_input,
         'researchers_list' : [],
         'researchers_output' : [],
-        'final_report' : "******"
+        'final_report' : ""
     }
 
     if user_input.lower() == "exit":
         break
 
-    config = {"configurable": {"thread_id": "thread-1"}}
+    config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+
+    print("\n---------------")
+    print("|🆔 thread_id |")
+    print("---------------")
+    print(config['configurable']['thread_id'],"\n")
 
     result = researcher_agent.invoke(input_state,config)
 

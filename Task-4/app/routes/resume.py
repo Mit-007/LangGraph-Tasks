@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from langgraph.types import Command
 from app.agent import agent
 from typing import TypedDict
-from app.services.logger import logger
 
 router = APIRouter(prefix="", tags=["Call Quality Analysis Agent"])
 

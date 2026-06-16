@@ -59,6 +59,7 @@ To prevent infinite loops:
 
 - Maximum iterations = **10**
 - After reaching the limit, the agent returns a graceful fallback response
+- It Is changable , place in app/core/constant.py
 
 Example:
 

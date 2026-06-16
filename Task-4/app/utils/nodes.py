@@ -41,6 +41,9 @@ def extract_issues(state : Agent_schema) ->Agent_schema:
 
         logger.debug("👨 Human : Generate Issues")
 
+        if not llm:
+            raise ValueError("LLM service is not available.")
+
         issue_extraction_prompt = ISSUE_EXTRACTION_PROMPT.format(transcript = state.call_transcript)
         structured_llm = llm.with_structured_output(issues_extract_schema)
         result = structured_llm.invoke(issue_extraction_prompt)
@@ -138,6 +141,9 @@ def classify_severity(state : Agent_schema) ->Agent_schema:
         
         logger.debug("👨 Human : Generate Severity")
 
+        if not llm:
+            raise ValueError("LLM service is not available.")
+
         severity_classify_prompt = SEVERITY_CLASSIFY_PROMPT.format(issues = state.issues)
         structured_llm = llm.with_structured_output(severity_classify_schema)
         result = structured_llm.invoke(severity_classify_prompt)
@@ -168,6 +174,9 @@ def generate_fix(state : Agent_schema) ->Agent_schema:
         
         logger.debug("👨 Human : Generate fixes")
 
+        if not llm:
+            raise ValueError("LLM service is not available.")
+
         generate_fixes_prompt= GENERATE_FIXES_PROMPT.format(issues_with_severity = state.severity)
         structured_llm = llm.with_structured_output(generate_fixes_schema)
         result = structured_llm.invoke(generate_fixes_prompt)
@@ -182,7 +191,8 @@ def generate_fix(state : Agent_schema) ->Agent_schema:
     except Exception as e:
         logger.error(f"❌ Exception: {e}")
         return {
-            'fixes' : []
+            'fixes' : [],
+            'overall_score' : 0.0
         }
 
 

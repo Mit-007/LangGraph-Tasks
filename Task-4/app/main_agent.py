@@ -1,6 +1,5 @@
 from app.agent import agent
-from langgraph.types import Command
-
+import uuid
 
 while True:
     print("============================================== Start =================================================================================")
@@ -11,26 +10,19 @@ while True:
         "issues" : [],
         "severity" : [],
         "fixes" : [],
-        "report" :"",
-        "final_answer" :""
+        "draft_report" :"",
+        "overall_score" :0.0
     }
 
     if user_transScript.lower() == "exit":
         break
 
-    config = {"configurable": {"thread_id": "thread-1"}}
+    thread_id = str(uuid.uuid4())
+    config = {"configurable": {"thread_id": thread_id}}
 
     res = agent.invoke(input_state,config=config)
 
-    # print("\n====================")
-    # print(" : ",event['call_llm']['tool_call'])
-    # print("tool_name : ",event['call_llm']['tool_name'])
-    # print("Through : ",event['call_llm']['through'])
-    # print("tool_args : ",event['call_llm']['tool_args'])
-    # print("----------")
-
     current_state = agent.get_state(config=config)
-
 
     # second while loop for handle multiple interrupts 
     while current_state.interrupts:
@@ -46,6 +38,6 @@ while True:
     print("\n\n----------------")
     print("| Output :-    |")
     print("----------------")
-    print("final_answer : ",current_state.values['final_answer'])
+    print("final_answer : ",current_state.values['draft_report'])
 
     print("\n============================================== End =================================================================================")

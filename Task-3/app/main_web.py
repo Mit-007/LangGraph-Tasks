@@ -1,5 +1,5 @@
 from app.utils.subgraph.graph_web_researcher import web_researcher_agent
-
+import uuid
 while(True):
 
     print("============================================== Start =================================================================================")
@@ -16,7 +16,12 @@ while(True):
     if user_input.lower() == "exit":
         break
 
-    config = {"configurable": {"thread_id": "thread-1"}}
+    config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+
+    print("\n---------------")
+    print("|🆔 thread_id |")
+    print("---------------")
+    print(config['configurable']['thread_id'])
 
     result = web_researcher_agent.invoke(input_state,config)
 

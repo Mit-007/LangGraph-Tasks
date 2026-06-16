@@ -118,6 +118,9 @@ def orchestator_DB_researcher(state: DB_researcher_State) -> DB_researcher_State
         ]
         """
 
+        if not llm:
+            raise ValueError("LLM service is not available.")
+
         structured_llm = llm.with_structured_output(DB_researcher_llm_schema)
         result = structured_llm.invoke(prompt_orchestator_DB_researcher)
 
@@ -207,7 +210,7 @@ def aggregater_DB_researcher(state: DB_researcher_State) -> DB_researcher_State:
             logger.warning("No workers_output found")
 
             return {
-                "final_result": "Unable to answer the question because no data was retrieved."
+                "final_result": "Unable to answer the question because no data was fetch from DATABASE"
             }
 
         final_report_prompt = f"""
@@ -262,6 +265,9 @@ def aggregater_DB_researcher(state: DB_researcher_State) -> DB_researcher_State:
 
         Generate the final report now.
         """
+
+        if not llm:
+            raise ValueError("LLM service is not available.")
 
         structured_llm = llm.with_structured_output(
             DB_researcher_aggregator_schema

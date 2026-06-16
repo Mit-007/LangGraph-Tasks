@@ -12,12 +12,10 @@ def rerunGraph(Question : str):
         'user_input' : Question,
         'researchers_list' : [],
         'researchers_output' : [],
-        'final_report' : "******"
+        'final_report' : ""
     }
     result = researcher_agent.invoke(input_state,config)
     return{
-        # "user_input" : "result"["user_input"],
-        # "final_report":result["final_report"]    
         "user_input" : Question,
         "final_report":result["final_report"],
         "thread_id" : thread_id       

@@ -2,7 +2,9 @@ from langchain_core.tools import tool
 from ddgs import DDGS
 from langchain_experimental.tools import PythonREPLTool
 
-
+# ============
+# Calculator Tool
+# ==============
 @tool
 def calculator(first_nums: float, second_nums: float, operation: str) -> dict:
     """
@@ -29,6 +31,9 @@ def calculator(first_nums: float, second_nums: float, operation: str) -> dict:
     
 
 
+# ============
+# Web Search Tool
+# ==============
 @tool
 def web_search(query: str,max_result:int) -> dict:
     """
@@ -63,6 +68,10 @@ def web_search(query: str,max_result:int) -> dict:
 
 
 
+
+# ============
+# Pyhton REPL Tool
+# ==============
 py_repl = PythonREPLTool()
 
 FORBIDDEN = ["import", "__import__", "open(", "eval(", "exec(", "compile(", "os.", "sys.", "subprocess", "shutil",
@@ -71,7 +80,6 @@ FORBIDDEN = ["import", "__import__", "open(", "eval(", "exec(", "compile(", "os.
 @tool
 def python_repl(code: str) -> dict:
     """Execute simple Python code safely."""
-    print("tool called")
     try:
         code_lower = code.lower()
 

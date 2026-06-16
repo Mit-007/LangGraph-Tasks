@@ -5,6 +5,7 @@ from typing import Literal
 from app.services.prompt import llm_prompt
 from app.services.llm_service import llm
 from app.services.logger import logger
+from app.core.constant import MAX_ITERATION
 
 # ===========
 # call_llm
@@ -12,11 +13,18 @@ from app.services.logger import logger
 def call_llm(state: AgentState) -> AgentState:
     logger.info("Node:-call_llm")
     try:
+
+        if state["question"].strip =="":
+            raise ValueError("Invalid Input , question is empty")
+
         structured_llm_prompt = llm_prompt(
             state["question"],
             state["tool_call_log"],
             state["iteration_count"]
         )
+
+        if not llm:
+            raise ValueError("LLM service is not available.")
 
         structured_llm = llm.with_structured_output(LLMResponse)
 
@@ -36,7 +44,7 @@ def call_llm(state: AgentState) -> AgentState:
         }
 
     except Exception as e:
-        logger.exception(f"Error in call_llm: {e}")
+        logger.error(f"Error in call_llm: {e}")
 
         return {
             "final_answer": f"Error while processing request: {str(e)}",
@@ -53,7 +61,7 @@ def call_llm(state: AgentState) -> AgentState:
 def route_tool_node(state: AgentState) -> Literal["tool_node", "END"]:
     logger.info("Node:-route_tool_node")
     try:
-        if state["tool_call"] and state['iteration_count'] < 10:
+        if state["tool_call"] and state['iteration_count'] < MAX_ITERATION:
             return "tool_node"
         else :
             return "END"
