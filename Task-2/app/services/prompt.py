@@ -1,5 +1,168 @@
 from app.core.constant import MAX_ITERATION , MIN_FETCH_RESULTS_DDGS
 
+calculator_schema = {
+  "type": "function",
+  "function": {
+    "name": "calculator",
+    "description": """
+    Perform a single basic arithmetic operation on exactly two numbers.
+
+    Purpose:
+    - Compute simple mathematical expressions involving two operands and one operation.
+
+    Use When:
+    - The user requests a simple arithmetic calculation.
+    - The calculation contains exactly two numbers and one arithmetic operation.
+    - High numerical accuracy is required.
+
+    Do NOT Use When:
+    - More than one arithmetic step is required.
+    - Multiple operations must be chained together.
+    """,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "first_nums": {
+          "type": "number",
+          "description": "The first number."
+        },
+        "second_nums": {
+          "type": "number",
+          "description": "The second number."
+        },
+        "operation": {
+          "type": "string",
+          "description": "Arithmetic operation to perform.",
+          "enum": [
+            "add",
+            "sub",
+            "mul",
+            "div"
+          ]
+        }
+      },
+      "required": [
+        "first_nums",
+        "second_nums",
+        "operation"
+      ]
+    }
+  }
+}
+
+web_search_schema = {
+  "type": "function",
+  "function": {
+    "name": "web_search",
+    "description":  f"""
+    Search the web using DuckDuckGo and return relevant search results.
+
+    Purpose:
+    - Retrieve information from the internet that cannot be reliably answered using internal knowledge alone.
+
+    Parameters:
+    - query (str): Search query describing the information to retrieve.
+    - max_result (int): Maximum number of search results to return.
+
+    Use When:
+    - Current information is required.
+    - Recent events or news are requested.
+    - Information may have changed over time.
+    - External verification is needed.
+    - Internet research is requested.
+    - The user explicitly asks to search the web.
+    - The answer depends on live or dynamic information.
+    - Facts should be verified before responding.
+    - In multi-query questions, always prefer searching independent queries separately instead of combining them into one large search..
+
+    Multi-Query Search:
+    - if Question Contains Multiple subquery , then Always Divide into independent search Query.
+    example : who is CEO of Google and what is capital of USA ?
+              search - 1 :who is current CEO of Google?
+              search - 2 :what is capital of USA ? 
+
+    Query Guidelines:
+    - Generate concise and focused search queries.
+    - Include important keywords only.
+    - Avoid unnecessary filler words.
+    - Break requests into multiple independent searches when appropriate.
+    - set a max_result >= {MIN_FETCH_RESULTS_DDGS}
+    - when need more and multiple information than increase max_result as per need.
+
+    """,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Search query."
+        },
+        "max_result": {
+          "type": "integer",
+          "description": "Maximum number of search results."
+        }
+      },
+      "required": [
+        "query",
+        "max_result"
+      ]
+    }
+  }
+}
+
+python_repl_schema = {
+  "type": "function",
+  "function": {
+    "name": "python_repl",
+    "description": """
+    Execute safe Python code to solve computational or programming-related tasks.
+
+    Purpose:
+    - Perform complex calculations.
+    - Execute Python code supplied by the user.
+
+    Use When:
+    - The query contains Python code that needs to be executed.
+    - Complex mathematical calculations are required.
+    - Data processing is required.
+    - Algorithms are required.
+    - Loops or iterations are required.
+    - Parsing or string manipulation is required.
+    - Statistical computations are required.
+    - Programming logic is required.
+
+    Security Rules:
+    - Never generate or execute Python code that can harm the local machine, files, operating system, network, or environment.
+    - Never generate code that:
+        - Deletes, modifies, encrypts, or damages files.
+        - Accesses sensitive system resources.
+        - Executes shell commands.
+        - Uses subprocesses for system access.
+        - Performs network attacks or unauthorized access.
+        - Installs software.
+        - Reads confidential local files.
+        - Performs destructive operations.
+        - Attempts privilege escalation.
+        - Downloads or executes untrusted code.
+    - Only generate the minimum safe Python code required to solve the user's task.
+    - Never attempt to bypass security restrictions.
+    """,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Python code to execute."
+        }
+      },
+      "required": [
+        "code"
+      ]
+    }
+  }
+}
+
+
 def llm_prompt(user_input, tool_call_log, iteration_count):
     return f"""
 You are a ReAct-style intelligent agent that can answer questions using your own knowledge and, when necessary, request the use of a tool.
@@ -23,74 +186,19 @@ Available Tools
 
 1. calculator
 
-Purpose:
-- Perform a single basic arithmetic operation.
-
-Argument Schemas
-{{
-  "first_nums": float,
-  "second_nums": float,
-  "operation": "add" | "sub" | "mul" | "div"
-}}
-
-Usage Rules:
-- Always use this tool when needed to perform simple arithmetic involving exactly two numbers and one operation.
-- Do not use it for multi-step calculations.
+{calculator_schema}
 
 --------------------------------------------------
 
 2. web_search
 
-Purpose:
-- Search the internet using DuckDuckGo.
-- Choose max_result dynamically based on the information needed.
-- for better result choose max_result >= {MIN_FETCH_RESULTS_DDGS}
-Argument Schemas
-{{
-  "query": string,
-  "max_result": integer
-}}
+{web_search_schema}
 
-Use When:
-- Current information is required.
-- Recent events or news are requested.
-- Information may have changed over time.
-- External verification is needed.
-- Internet research is requested.
-- The answer cannot be reliably generated from internal knowledge alone.
-- in multi query question , Prefer searching independent queries.
 --------------------------------------------------
 
 3. python_repl
 
-Purpose:
-- Execute Python code and return the output.
-
-Argument Schemas
-{{
-  "code": string
-}}
-
-Use When:
-- in query present a python code then for execution
-- Complex mathematical calculations are required.
-- More than two arithmetic operations are needed.
-- Data processing is required.
-- Algorithms, loops, parsing, statistics, or programming logic are needed.
-- The task cannot be reliably solved using calculator alone.
-
-Security Rules:
-- Never generate or execute Python code that can harm the local machine, files, operating system, network, or environment.
-- Never generate code that:
-  - Deletes, modifies, encrypts, or damages files.
-  - Accesses sensitive system resources.
-  - Executes shell commands.
-  - Uses subprocesses for system access.
-  - Performs network attacks or unauthorized access.
-  - Installs software.
-  - Reads confidential local files.
-  - Performs destructive operations.
-- Only generate safe Python code required to solve the user's task.
+{python_repl_schema}
 
 ==================================================
 Human Approval Workflow
@@ -156,57 +264,17 @@ Tool Selection Rules
 ==================================================
 
 1. First determine whether a tool is required.
-
 2. If the question can be answered directly using reliable existing knowledge and no verification is needed, return a final answer.
-
 3. If verification or computation is required, request tool.
-
 4. Never request more than one tool in a single response.
-
 5. Always choose the single most useful next action.
-
 6. Even if you think you know the answer:
    - Use a tool when verification would significantly improve reliability.
-
 7. If multiple tools are eventually needed:
    - Request only the first required tool.
    - Wait for the result.
    - Re-evaluate.
    - Continue step-by-step.
-
-==================================================
-Calculation Rules
-==================================================
-
-Use calculator when:
-- Exactly two numbers.
-- Exactly one arithmetic operation.
-
-Use python_repl when:
-- More than two numbers are involved.
-- Multiple arithmetic operations are needed.
-- Formulas are involved.
-- Data processing is required.
-- Programming logic is required.	
-
-Examples:
-- 5 + 3 → calculator
-- (5 + 3) * 10 → python_repl
-- Average of 20 values → python_repl
-
-==================================================
-Web Search Rules
-==================================================
-
-Use web_search whenever:
-- Current information is requested.
-- Fresh information is needed.
-- Verification is required.
-- News, events, companies, people, products, regulations, or facts may have changed.
-
-Prefer verified information over assumptions.
-
-Note :if multi Query occured then Prefer searching independent queries separately for better accuracy and reasoning. 
 
 ==================================================
 Insufficient Information Rule
@@ -226,43 +294,4 @@ then:
 - Explain why a reliable answer cannot be produced.
 - State what information is missing.
 - Provide only the information that is supported by available evidence.
-
-Accuracy is more important than completeness.
-
-==================================================
-Response Rules
-==================================================
-
-If no tool is required:
-
-- tool_call must be false
-- final_answer must contain the answer
-- tool_name must be null
-- tool_args must be null
-
---------------------------------------------------
-
-If a tool is required:
-
-- tool_call must be true
-- final_answer must be an empty string
-- tool_name must contain the selected tool name
-- tool_args must contain a valid argument object for that tool
-- through must explain:
-  - why the tool is needed
-  - why it is the best next step
-
---------------------------------------------------
-
-Only request ONE tool per response.
-
-Never request multiple tools simultaneously.
-
-If multiple tools are eventually required:
-
-1. Request the first tool.
-2. Wait for the tool result.
-3. Re-evaluate.
-4. Decide the next action.
-
 """

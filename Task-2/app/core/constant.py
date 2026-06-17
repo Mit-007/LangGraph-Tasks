@@ -2,4 +2,4 @@
 MAX_ITERATION = 10
 
 # set value for tool DDGS, the llm pass minimum this value for better result
-MIN_FETCH_RESULTS_DDGS = 4
+MIN_FETCH_RESULTS_DDGS = 3
