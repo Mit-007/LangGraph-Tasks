@@ -1,6 +1,6 @@
 from langgraph.types import Send
 from app.utils.state.states import *
-from app.services.call_llm import llm
+from app.services.call_llm import llm as get_llm
 from app.utils.subgraph.graph_DB_researcher import DB_researcher_agent
 from app.utils.subgraph.graph_doc_researcher import Doc_researcher_agent
 from app.utils.subgraph.graph_web_researcher import web_researcher_agent
@@ -11,7 +11,7 @@ from app.core.config import DB_PATH_OF_COLLECTION
 # orchestator
 # ============
 def orchestator(state: MainState) -> MainState:
-
+    """Generate sub-queries from the input query for worker nodes."""
     logger.info("Node:-orchestator Node")
 
     try:
@@ -97,6 +97,8 @@ def orchestator(state: MainState) -> MainState:
         {state['user_input']}
         """
 
+        llm = get_llm()
+
         if not llm:
             raise ValueError("LLM service is not available.")
 
@@ -122,8 +124,8 @@ def orchestator(state: MainState) -> MainState:
 from langgraph.types import Send
 
 def route_workers(state: MainState):
-
-    logger.info("route function call")
+    """Route to a worker node using the send() API."""
+    logger.info("Node:-route_workers")
 
     try:
         tasks = state.get("researchers_list", [])
@@ -153,7 +155,7 @@ def route_workers(state: MainState):
 # worker
 # ============
 def worker(state: WorkerState) -> MainState:
-
+    """Execute the given task and generate the output."""
     try:
         researcher_name = state["researcher_name"]
         logger.info(f"🧠 Start Researcher : {researcher_name}")
@@ -161,6 +163,10 @@ def worker(state: WorkerState) -> MainState:
         response = None
 
         if researcher_name == 'DB_researcher_agent':
+            
+            if not DB_PATH_OF_COLLECTION:
+                raise ValueError("DB_PATH_OF_COLLECTION_TASK_3 is missing. Please set it in your .env file.")
+            
             input_state = {
                 "query": state['query'],
                 "db_path": DB_PATH_OF_COLLECTION,
@@ -211,6 +217,7 @@ def worker(state: WorkerState) -> MainState:
 # aggregater
 # ============
 def aggregater(state: MainState) -> MainState:
+    """Combine the outputs from all worker nodes."""
     logger.info("aggregator Node")
     try:
         report_aggregater_prompt = f"""
@@ -281,6 +288,8 @@ def aggregater(state: MainState) -> MainState:
 
         Return only the final report as string,
         """
+
+        llm = get_llm()
 
         if not llm:
             raise ValueError("LLM service is not available.")

@@ -11,10 +11,11 @@ from app.core.constant import MAX_ITERATION
 # call_llm
 # ===========
 def call_llm(state: AgentState) -> AgentState:
+    """Use the LLM to generate an answer or determine whether a tool should be used."""
     logger.info("Node:-call_llm")
     try:
 
-        if state["question"].strip =="":
+        if state["question"].strip()=="":
             raise ValueError("Invalid Input , question is empty")
 
         structured_llm_prompt = llm_prompt(
@@ -59,6 +60,7 @@ def call_llm(state: AgentState) -> AgentState:
 # route_tool_node
 # ===========
 def route_tool_node(state: AgentState) -> Literal["tool_node", "END"]:
+    """Route to the tool node if a tool is required."""
     logger.info("Node:-route_tool_node")
     try:
         if state["tool_call"] and state['iteration_count'] < MAX_ITERATION:
@@ -75,21 +77,23 @@ def route_tool_node(state: AgentState) -> Literal["tool_node", "END"]:
 # tool_node
 # ===========
 def tool_node(state : AgentState):
+    """Execute the specified tool based on Human approval and return its result."""
     logger.info("Node:-tool_node")
 
     tool_name = state['tool_name']
     tool_answer = None
 
+    # --> call calculator
     if tool_name=='calculator':
         approval = interrupt("can i use a calculator tool (yes/no)")
 
         if approval.lower() == "yes": 
             tool_answer = calculator.invoke(state['tool_args'] )
 
-        else : tool_answer="not approval for use calculator tool"
+        else : tool_answer=f"not approval for use calculator tool , user_response : {approval}"
 
 
-
+    # --> call Web Search
     if tool_name=='web_search':
 
         approval = interrupt("can i use a web search tool (yes/no)")
@@ -97,11 +101,11 @@ def tool_node(state : AgentState):
         if approval.lower() == "yes": 
             tool_answer = web_search.invoke(state['tool_args'])
 
-        else : tool_answer="not approval for use web_search tool"
+        else : tool_answer=f"not approval for use web_search tool , user_response : {approval}"
 
         
         
-
+    # --> call pyhton repl
     if tool_name =='python_repl':
 
         approval = interrupt("can i use a python_repl tool (yes/no)")
@@ -109,7 +113,7 @@ def tool_node(state : AgentState):
         if approval.lower() == "yes": 
             tool_answer = python_repl.invoke(state['tool_args'])
 
-        else : tool_answer="not approval for use pyhton_repl tool"
+        else : tool_answer=f"not approval for use pyhton_repl tool , user_response : {approval}"
     
 
     try:

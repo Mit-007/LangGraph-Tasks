@@ -5,6 +5,8 @@ router = APIRouter(prefix="", tags=["Researcher-Agent"])
 
 @router.post("/rerunGraph/{thread_id}")
 def rerunGraph(thread_id : str):
+    """Resume graph execution from the last checkpoint using the provided thread ID."""
+    
     config = {"configurable": {"thread_id": thread_id}}
     result = researcher_agent.invoke(None,config)
 

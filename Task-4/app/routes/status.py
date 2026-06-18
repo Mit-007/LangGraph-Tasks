@@ -5,6 +5,7 @@ router = APIRouter(prefix="" , tags=["Call Quality Analysis Agent"])
 
 @router.get("/status/{thread_id}")
 def getStatus(thread_id : str):
+    """Retrieve the current execution state of the graph for the given thread ID."""
     config = {"configurable": {"thread_id":thread_id}}
     current_state = agent.get_state(config)
 

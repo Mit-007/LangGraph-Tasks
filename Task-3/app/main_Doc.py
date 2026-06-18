@@ -37,11 +37,6 @@ while(True):
     print("------------------")
     print(result["sub_querys"])
 
-    # print("\n--------------------")
-    # print("| 👷 Worker Output |")
-    # print("--------------------")
-    # print(result["workers_output"])
-
     print("\n-------------------")
     print("| ✅ Final Answer |")
     print("-------------------")

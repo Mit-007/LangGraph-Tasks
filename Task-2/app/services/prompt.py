@@ -1,5 +1,8 @@
 from app.core.constant import MAX_ITERATION , MIN_FETCH_RESULTS_DDGS
 
+# =========
+# Calculator Tool Description 
+# =========
 calculator_schema = {
   "type": "function",
   "function": {
@@ -50,6 +53,9 @@ calculator_schema = {
   }
 }
 
+# =========
+# Web Tool Description 
+# =========
 web_search_schema = {
   "type": "function",
   "function": {
@@ -58,7 +64,7 @@ web_search_schema = {
     Search the web using DuckDuckGo and return relevant search results.
 
     Purpose:
-    - Retrieve information from the internet that cannot be reliably answered using internal knowledge alone.
+    - Retrieve information from the internet.
 
     Parameters:
     - query (str): Search query describing the information to retrieve.
@@ -110,6 +116,9 @@ web_search_schema = {
   }
 }
 
+# =========
+# Python_Repl Tool Description 
+# =========
 python_repl_schema = {
   "type": "function",
   "function": {
@@ -163,23 +172,20 @@ python_repl_schema = {
 }
 
 
+# =========
+# LLM prompt 
+# =========
 def llm_prompt(user_input, tool_call_log, iteration_count):
     return f"""
 You are a ReAct-style intelligent agent that can answer questions using your own knowledge and, when necessary, request the use of a tool.
+
+-> If you can answer directly, first verify that the information is static and has no possibility of changing in the future. 
+  -Otherwise, use the appropriate tool to verify it.
 
 Input:
 user_question : {user_input}
 pre_call_tool_history:{tool_call_log}
 iteration_count{iteration_count}
-
-Input Fields details:
-
-- user_question: The user's question.
-- pre_call_tool_history: Previous tool calls for the current question, including:
-  - tool name
-  - tool arguments
-  - tool result
-- iteration_count: Total number of tool calls already performed for the current question.
 
 Available Tools
 ==============
@@ -213,12 +219,20 @@ When you request a tool:
    - The result will appear in pre_call_tool_history.
 3. If the user does NOT approve:
    - The tool will NOT be executed.
-   - A mention in tool result not approval for use.
+   - A mention in tool result not approval by use.
+   - also user approval message mention in tool result.
+
+Important : strickly read user response , and check following any conditions are present or not.
 
 Important Rule:
-- If a tool was not approved then check , if any valid error in tool call solve it and call again.
-- If a tool was previously not approved and not any valid error present,then do NOT repeatedly request the same tool again.
-- Instead, generate the best possible answer using:
+->when you can call again the same tool after rejection:
+  - If user approval miss typed of arround "yes" in tool approval , then ask again to use tool.
+  - If user give any changes in question then do change and give another tool request base on new chages.
+  - If a tool was not approved then check , if any valid error in tool call arguments solve it and call again.
+
+-> when not call again same tool after rejection :
+  - if not any valid error in arguments , not changes in question and not missed typed around "yes" then not call again for same query.
+  - if tool not approved then generate the best possible answer using:
   - your existing knowledge
   - all previously available tool results
   - if not enough data to generate answer then give simple answer with reason " user not approved this tool call that why i not generate proper answer"
@@ -262,15 +276,17 @@ Never repeatedly call a tool with the exact same failing arguments.
 ==================================================
 Tool Selection Rules
 ==================================================
+- every mathematical calculation verify using tool(if max_iteration not hit):
+  -if only two operands and one operation  then use => calculator
+  -if more then one operation then use => python repl
 
 1. First determine whether a tool is required.
-2. If the question can be answered directly using reliable existing knowledge and no verification is needed, return a final answer.
-3. If verification or computation is required, request tool.
-4. Never request more than one tool in a single response.
-5. Always choose the single most useful next action.
-6. Even if you think you know the answer:
+2. If verification or computation is required, request tool.
+3. Never request more than one tool in a single response.
+4. Always choose the single most useful next action.
+5. Even if you think you know the answer:
    - Use a tool when verification would significantly improve reliability.
-7. If multiple tools are eventually needed:
+6. If multiple tools are eventually needed:
    - Request only the first required tool.
    - Wait for the result.
    - Re-evaluate.

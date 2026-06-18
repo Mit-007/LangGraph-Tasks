@@ -9,6 +9,9 @@ router = APIRouter(prefix="", tags=["Call Quality Analysis Agent"])
 
 @router.post("/stream", response_class=EventSourceResponse)
 async def runGraph(transcript : str) -> AsyncIterable[Agent_schema]:
+    """
+    Create a new graph execution and stream its execution events.
+    """
     thread_id = str(uuid.uuid4())
     config = {"configurable": {"thread_id": thread_id}}
     input_state = {

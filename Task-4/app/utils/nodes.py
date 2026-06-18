@@ -9,7 +9,8 @@ from app.services.logger import logger
 # =============
 # ingest_transcript
 # =============
-def ingest_transcript(state : Agent_schema) ->Agent_schema: 
+def ingest_transcript(state : Agent_schema) ->Agent_schema:
+    """Validate the provided transcript.""" 
     logger.info("Node:-ingest_transcript")
     try:
         transcript = state.call_transcript
@@ -32,6 +33,7 @@ def ingest_transcript(state : Agent_schema) ->Agent_schema:
 # extract_issues
 # ============= 
 def extract_issues(state : Agent_schema) ->Agent_schema:
+    """Extract issues from the transcript."""
     logger.info("Node:-extract_issues")
     try:
         transcript = state.call_transcript
@@ -65,6 +67,7 @@ def extract_issues(state : Agent_schema) ->Agent_schema:
 # route_human_review_for_extract_issues
 # =============
 def route_human_review_for_extract_issues(state: Agent_schema) -> Literal["human_review_for_extract_issues", "classify_severity"]:
+    """Route to human review if any extracted issue has a low confidence score."""
     logger.info("Node:-route_human_review_for_extract_issues")
     try : 
 
@@ -88,6 +91,10 @@ def route_human_review_for_extract_issues(state: Agent_schema) -> Literal["human
 # extract_issues
 # =============
 def human_review_for_extract_issues(state : Agent_schema) -> Agent_schema :
+    """
+    Raise a human approval interrupt for issue extraction. 
+    If the user rejects the extracted issues, replace the issue list with the user-provided issue list.
+    """    
     logger.info("Node:-human_review_for_extract_issues")
     list_low_score_issues = []
     for issue in state.issues:
@@ -132,6 +139,7 @@ def human_review_for_extract_issues(state : Agent_schema) -> Agent_schema :
 # classify_severity
 # =============
 def classify_severity(state : Agent_schema) ->Agent_schema:
+    """Classify the extracted issues into the following severity levels: low, medium, high, and critical."""
     logger.info("Node:-classify_severity")
     try :
         issues = state.issues
@@ -164,6 +172,7 @@ def classify_severity(state : Agent_schema) ->Agent_schema:
 # generate_fix
 # =============
 def generate_fix(state : Agent_schema) ->Agent_schema:
+    """Generate fixes for the identified issues."""
     logger.info("Node:-generate_fix")
     try:
 
@@ -200,6 +209,16 @@ def generate_fix(state : Agent_schema) ->Agent_schema:
 # draft_report
 # =============
 def draft_report(state : Agent_schema) ->Agent_schema:
+    """
+    Make a final draft report.
+
+    Draft_report = {
+    "issues": list[str],
+    "severity_summary": list[str],
+    "recommended_fixes": list[str],
+    "overall_score": float
+    }
+    """
     logger.info("Node:-draft_report")
 
     try : 
@@ -231,6 +250,7 @@ def draft_report(state : Agent_schema) ->Agent_schema:
 # human_review_for_draft
 # =============
 def human_review_for_draft(state : Agent_schema) ->Agent_schema:
+    """Process human approval and apply the requested changes in draft."""
     logger.info("Node:-human_review")
 
     interrupt_mess = f"""\n i make final report draft :\n{state.draft_report}\n\nIf you wnat to change in draft report give changes Dict Of Solution ,or not want change that section give 'None' """
@@ -265,6 +285,7 @@ def human_review_for_draft(state : Agent_schema) ->Agent_schema:
 # route_human_review_for_draft
 # =============
 def route_human_review_for_draft(state: Agent_schema) -> Literal["human_review", "END"]:
+    """Route to the Human approval node for draft review."""
     logger.info("Node:-route_human_review")
 
     try:

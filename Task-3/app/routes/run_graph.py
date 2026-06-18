@@ -6,6 +6,7 @@ router = APIRouter(prefix="", tags=["Researcher-Agent"])
 
 @router.post("/runGraph")
 def rerunGraph(Question : str):
+    """Run a new research workflow for the provided question."""
     thread_id = str(uuid.uuid4())
     config = {"configurable": {"thread_id": thread_id}}
     input_state = {

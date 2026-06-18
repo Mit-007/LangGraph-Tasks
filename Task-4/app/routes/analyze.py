@@ -6,6 +6,7 @@ router = APIRouter(prefix="", tags=["Call Quality Analysis Agent"])
 
 @router.post("/analyze")
 def runGraph(transcript : str):
+    """Create a new graph execution and process the provided transcript."""
     thread_id = str(uuid.uuid4())
     config = {"configurable": {"thread_id": thread_id}}
     input_state = {

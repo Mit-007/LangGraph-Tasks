@@ -9,7 +9,14 @@ from langchain_experimental.tools import PythonREPLTool
 def calculator(first_nums: float, second_nums: float, operation: str) -> dict:
     """
     Perform a basic arithmetic operation on two numbers.
-    Supported operations: add, sub, mul, div
+
+    Args:
+    first_nums: The first operand.
+    second_nums: The second operand.
+    operation: Arithmetic operation ("add", "sub", "mul", or "div").
+
+    Returns:
+    A dictionary containing the computed result or an error message.
     """
     try:
         if operation == "add":
@@ -37,7 +44,14 @@ def calculator(first_nums: float, second_nums: float, operation: str) -> dict:
 @tool
 def web_search(query: str,max_result:int) -> dict:
     """
-    Search the web using DuckDuckGo and return results.
+    Search the web using DuckDuckGo and return relevant search results.
+
+    Args:
+    query: The search query.
+    max_result: Maximum number of search results to retrieve.
+
+    Returns:
+    A dictionary containing the formatted search results or an error message.
     """
 
     try:
@@ -79,7 +93,17 @@ FORBIDDEN = ["import", "__import__", "open(", "eval(", "exec(", "compile(", "os.
 
 @tool
 def python_repl(code: str) -> dict:
-    """Execute simple Python code safely."""
+    """
+    Execute Python code after validating it against restricted operations.
+
+    Args:
+    code: The Python code to execute.
+
+    Returns:
+    A dictionary containing the execution result or an error message if
+    the code is blocked or execution fails.
+    """
+    
     try:
         code_lower = code.lower()
 

@@ -7,6 +7,7 @@ from app.core.constant import *
 # input_handler
 # ==========
 def input_handler(state : AgentState)->AgentState:
+    """Check whether the input is empty."""
     try:
         message = state["messages"][-1].strip()
 
@@ -24,6 +25,7 @@ def input_handler(state : AgentState)->AgentState:
         logger.error(f"{e}")
         state["messages"][-1] = ""
 
+        # --> if Input is not valid , then current turn is not count !
         return {
             "messages": state["messages"],
             "turn_count": state["turn_count"],
@@ -34,6 +36,7 @@ def input_handler(state : AgentState)->AgentState:
 # route_after_input_handler
 # ==========
 def route_after_input_handler(state:AgentState)->Literal["responder","summarizer"]:
+    """Route to the first summary node if the current turn value matches the summary counter."""
     try:
         message = state["messages"][-1].strip()
 
@@ -59,6 +62,7 @@ def route_after_input_handler(state:AgentState)->Literal["responder","summarizer
 # responder
 # ==========
 def responder(state: AgentState) -> AgentState:
+    """Generate the user response using the LLM."""
     try:
         if (
             not state.get("messages")
@@ -133,6 +137,7 @@ def responder(state: AgentState) -> AgentState:
 # summarizer
 # ==========
 def summarizer(state: AgentState) -> AgentState:
+    """Generate a summary of past conversations."""
     try:
         if (not state.get("messages")or not state["messages"][-1]):
             raise ValueError(
@@ -207,6 +212,7 @@ def summarizer(state: AgentState) -> AgentState:
 # memory_updater
 # ==========
 def memory_updater(state: AgentState) -> AgentState:
+    """Optimize memory after the summary and mood counter reach their configured limits."""
     try:
         if not state["messages"][-1]:
             state["messages"].pop()

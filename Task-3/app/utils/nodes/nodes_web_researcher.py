@@ -1,6 +1,6 @@
 from tavily import TavilyClient
 from app.utils.state.state_web_researcher import *
-from app.services.call_llm import llm_web_researcher as llm
+from app.services.call_llm import llm_web_researcher
 from langgraph.types import Send
 from app.services.logger import logger
 from app.core.config import TAVILY_API_KEY
@@ -9,6 +9,7 @@ from app.core.constant import MAX_RESULTS_WEB_SEARCH
 # orchestator_web_researcher
 # ===========
 def orchestator_web_researcher(state: web_researcher_State) -> web_researcher_State:
+    """Generate sub-queries from the input query for worker nodes."""
     logger.info("web_researcher:-orchestrator Node")
 
     try:
@@ -39,6 +40,8 @@ def orchestator_web_researcher(state: web_researcher_State) -> web_researcher_St
         Only return the topic and sub-topic list.
         """
 
+        llm = llm_web_researcher()
+
         if not llm:
             raise ValueError("LLM service is not available.")
 
@@ -65,6 +68,7 @@ def orchestator_web_researcher(state: web_researcher_State) -> web_researcher_St
 # route_web_researcher_worker
 # ===========
 def route_web_researcher_worker(state: web_researcher_State):
+    """Route to a worker node using the send() API."""
     logger.info("web_researcher:-route function")
 
     try:
@@ -94,6 +98,7 @@ def route_web_researcher_worker(state: web_researcher_State):
 # worker_web_researcher
 # ===========
 def worker_web_researcher(state: web_researcher_worker_State) -> web_researcher_State:
+    """Execute the given task and generate the output."""
     logger.info("web_researcher:-worker Node")
 
     try:
@@ -135,6 +140,7 @@ def worker_web_researcher(state: web_researcher_worker_State) -> web_researcher_
 # aggregater_web_researcher
 # ===========
 def aggregater_web_researcher(state: web_researcher_State) -> web_researcher_State:
+    """Combine the outputs from all worker nodes."""
     logger.info("web_researcher:-aggregator Node")
 
     try:
@@ -176,6 +182,8 @@ def aggregater_web_researcher(state: web_researcher_State) -> web_researcher_Sta
         - Include a brief conclusion summarizing the key findings.
         - Return ONLY the final report text.
         """
+
+        llm = llm_web_researcher()
 
         if not llm:
             raise ValueError("LLM service is not available.")

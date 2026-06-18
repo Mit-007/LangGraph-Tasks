@@ -35,11 +35,6 @@ while(True):
     print("-----------------")
     print(result["query"])
 
-    # print("\n-----------------")
-    # print("| 🗂️ Schema     |")
-    # print("-----------------")
-    # print(result["schema_of_collection"])
-
     print("\n------------------")
     print("| 📋 Sub Queries |")
     print("------------------")

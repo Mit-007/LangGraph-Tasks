@@ -10,6 +10,14 @@ class TimeTravelSchema(BaseModel):
 
 @router.post("/timeTravel")
 def timeTravel(data : TimeTravelSchema):
+    """
+    Perform time travel by updating the user input at a previous execution state.
+
+    The function locates the checkpoint immediately before the orchestrator
+    node, forks the graph execution with the new user input, resumes execution
+    from that point, and returns the updated final report.
+    """
+    
     config = {"configurable": {"thread_id": data.thread_id}}
     state_list = researcher_agent.get_state_history(config)
     
