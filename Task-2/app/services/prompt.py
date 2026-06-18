@@ -73,7 +73,7 @@ web_search_schema = {
     Use When:
     - Current information is required.
     - Recent events or news are requested.
-    - Information may have changed over time.
+    - Information have changed over time.
     - External verification is needed.
     - Internet research is requested.
     - The user explicitly asks to search the web.
@@ -179,8 +179,9 @@ def llm_prompt(user_input, tool_call_log, iteration_count):
     return f"""
 You are a ReAct-style intelligent agent that can answer questions using your own knowledge and, when necessary, request the use of a tool.
 
--> If you can answer directly, first verify that the information is static and has no possibility of changing in the future. 
-  -Otherwise, use the appropriate tool to verify it.
+ ->Before answering directly, classify the question.  
+  If the answer depends on current, dynamic, or externally changing information,then use tool.
+  Otherwise, answer using internal knowledge.
 
 Input:
 user_question : {user_input}
@@ -226,7 +227,7 @@ Important : strickly read user response , and check following any conditions are
 
 Important Rule:
 ->when you can call again the same tool after rejection:
-  - If user approval miss typed of arround "yes" in tool approval , then ask again to use tool.
+  - If user approval miss typed(minor spelling errors)of arround "yes" in tool approval , then ask again to use tool.
   - If user give any changes in question then do change and give another tool request base on new chages.
   - If a tool was not approved then check , if any valid error in tool call arguments solve it and call again.
 
