@@ -1,15 +1,26 @@
 from langchain_core.tools import tool
 from ddgs import DDGS
 from langchain_experimental.tools import PythonREPLTool
+from app.core.constant import MAX_FETCH_RESULT_DDGS
 
-
+# ============
+# Calculator Tool
+# ==============
 @tool
 def calculator(first_nums: float, second_nums: float, operation: str) -> dict:
     """
     Perform a basic arithmetic operation on two numbers.
-    Supported operations: add, sub, mul, div
+
+    Args:
+    first_nums: The first operand.
+    second_nums: The second operand.
+    operation: Arithmetic operation ("add", "sub", "mul", or "div").
+
+    Returns:
+    A dictionary containing the computed result or an error message.
     """
     try:
+        operation = operation.strip().lower()
         if operation == "add":
             result = first_nums + second_nums
         elif operation == "sub":
@@ -29,13 +40,32 @@ def calculator(first_nums: float, second_nums: float, operation: str) -> dict:
     
 
 
+# ============
+# Web Search Tool
+# ==============
 @tool
 def web_search(query: str,max_result:int) -> dict:
     """
-    Search the web using DuckDuckGo and return results.
+    Search the web using DuckDuckGo and return relevant search results.
+
+    Args:
+    query: The search query.
+    max_result: Maximum number of search results to retrieve.
+
+    Returns:
+    A dictionary containing the formatted search results or an error message.
     """
 
     try:
+        if query.strip()=="":
+            raise ValueError("Query Is Empty")
+        
+        if max_result <= 0 :
+            raise ValueError("Max_result Must be positive")
+        
+        if max_result > MAX_FETCH_RESULT_DDGS:
+            raise ValueError(f"Max_result is too high,not bigger than {MAX_FETCH_RESULT_DDGS} allowed")
+
         with DDGS() as ddgs:
             results = list(
                 ddgs.text(
@@ -45,7 +75,7 @@ def web_search(query: str,max_result:int) -> dict:
             )
 
         if not results:
-            return "No results found."
+            return {"Answer":"No results found."}
 
         formatted_results = []
 
@@ -63,6 +93,10 @@ def web_search(query: str,max_result:int) -> dict:
 
 
 
+
+# ============
+# Pyhton REPL Tool
+# ==============
 py_repl = PythonREPLTool()
 
 FORBIDDEN = ["import", "__import__", "open(", "eval(", "exec(", "compile(", "os.", "sys.", "subprocess", "shutil",
@@ -70,16 +104,25 @@ FORBIDDEN = ["import", "__import__", "open(", "eval(", "exec(", "compile(", "os.
 
 @tool
 def python_repl(code: str) -> dict:
-    """Execute simple Python code safely."""
-    print("tool called")
+    """
+    Execute Python code after validating it against restricted operations.
+
+    Args:
+    code: The Python code to execute.
+
+    Returns:
+    A dictionary containing the execution result or an error message if
+    the code is blocked or execution fails.
+    """
+    
     try:
         code_lower = code.lower()
 
         for item in FORBIDDEN:
             if item.lower() in code_lower:
-                return f"Blocked: '{item}' is not allowed."
+                return {"Warning": f"Blocked: '{item}' is not allowed."}
 
-        return {str(py_repl.invoke(code))}
+        return { "Answer" : str(py_repl.invoke(code))}
 
     except Exception as e:
-        return {f"Error: {e}"}
+        return {"Error": f"{e}"}

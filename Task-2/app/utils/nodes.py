@@ -5,18 +5,27 @@ from typing import Literal
 from app.services.prompt import llm_prompt
 from app.services.llm_service import llm
 from app.services.logger import logger
+from app.core.constant import MAX_ITERATION
 
 # ===========
 # call_llm
 # ===========
 def call_llm(state: AgentState) -> AgentState:
+    """Use the LLM to generate an answer or determine whether a tool should be used."""
     logger.info("Node:-call_llm")
     try:
+
+        if state["question"].strip()=="":
+            raise ValueError("Invalid Input , question is empty")
+
         structured_llm_prompt = llm_prompt(
             state["question"],
             state["tool_call_log"],
             state["iteration_count"]
         )
+
+        if not llm:
+            raise ValueError("LLM service is not available.")
 
         structured_llm = llm.with_structured_output(LLMResponse)
 
@@ -36,7 +45,7 @@ def call_llm(state: AgentState) -> AgentState:
         }
 
     except Exception as e:
-        logger.exception(f"Error in call_llm: {e}")
+        logger.error(f"Error in call_llm: {e}")
 
         return {
             "final_answer": f"Error while processing request: {str(e)}",
@@ -51,9 +60,10 @@ def call_llm(state: AgentState) -> AgentState:
 # route_tool_node
 # ===========
 def route_tool_node(state: AgentState) -> Literal["tool_node", "END"]:
+    """Route to the tool node if a tool is required."""
     logger.info("Node:-route_tool_node")
     try:
-        if state["tool_call"] and state['iteration_count'] < 10:
+        if state["tool_call"] and state['iteration_count'] < MAX_ITERATION:
             return "tool_node"
         else :
             return "END"
@@ -67,44 +77,37 @@ def route_tool_node(state: AgentState) -> Literal["tool_node", "END"]:
 # tool_node
 # ===========
 def tool_node(state : AgentState):
+    """Execute the specified tool based on Human approval and return its result."""
     logger.info("Node:-tool_node")
 
     tool_name = state['tool_name']
     tool_answer = None
 
-    if tool_name=='calculator':
-        approval = interrupt("can i use a calculator tool (yes/no)")
-
-        if approval.lower() == "yes": 
-            tool_answer = calculator.invoke(state['tool_args'] )
-
-        else : tool_answer="not approval for use calculator tool"
-
-
-
-    if tool_name=='web_search':
-
-        approval = interrupt("can i use a web search tool (yes/no)")
-
-        if approval.lower() == "yes": 
-            tool_answer = web_search.invoke(state['tool_args'])
-
-        else : tool_answer="not approval for use web_search tool"
-
-        
-        
-
-    if tool_name =='python_repl':
-
-        approval = interrupt("can i use a python_repl tool (yes/no)")
-
-        if approval.lower() == "yes": 
-            tool_answer = python_repl.invoke(state['tool_args'])
-
-        else : tool_answer="not approval for use pyhton_repl tool"
-    
+    # --> Human Approval for Tool Usage :
+    approval = interrupt(f"can i use a {tool_name} tool (yes/no)")
 
     try:
+        # -->Human Approved the call tool :
+        if approval.lower() == "yes": 
+            # --> call calculator
+            if tool_name=='calculator':
+                tool_answer = calculator.invoke(state['tool_args'])
+
+            # --> call Web Search
+            elif tool_name=='web_search':
+                tool_answer = web_search.invoke(state['tool_args'])
+
+            # --> call pyhton repl
+            elif tool_name =='python_repl':
+                tool_answer = python_repl.invoke(state['tool_args'])
+
+            # --> Not valid tool name 
+            else :
+                tool_answer={"Answer":f"{tool_name} is Not Valid Tool_name"}
+
+        
+        else : tool_answer={"Answer" : f"not approval for use {tool_name} tool , user_response : {approval}"}
+
         tool_dict = {
             "tool_name":tool_name,
             "tool_args":state['tool_args'],
@@ -122,7 +125,7 @@ def tool_node(state : AgentState):
     except Exception as e:
         logger.exception(f"Error in tool_node: {e}")
 
-        error_message = f"Tool execution failed: {str(e)}"
+        error_message = { "Error" : f"Tool execution failed: {str(e)}"}
 
         tool_dict = {
             "tool_name": state.get("tool_name"),

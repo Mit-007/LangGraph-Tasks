@@ -65,6 +65,18 @@ Ctrl + C
 This will immediately stop the running application and exit the chat session.
 
 note : Once the End a current session the all messages history are removed. 
+---
+
+## ⚙️ `core/constant.py`
+
+This file contains configurable constants used across the project.
+
+- **`SUMMARY_COUNTER = 5`**
+  - Defines the number of conversation turns after which a new chat summary is generated.
+  - **Note:** This value should always be greater than `1`.
+
+- **`MOOD_HISTORY_COUNTER = 10`**
+  - Defines the number of conversation turns after which the stored mood history is cleared to optimize memory usage.
 
 ---
 # State Schema
@@ -77,7 +89,7 @@ class AgentState(TypedDict):
     summary: str
     turn_count: int
     mood: list[Literal["positive", "neutral", "negative"]]
-    answer: str
+    summary_status : bool
 ```
 
 ## Field Explanation
@@ -167,20 +179,18 @@ Example:
 
 ---
 
-### `answer`
+### `summary_status`
 
 ```python
-answer: str
+summary_status: bool
 ```
 
-Stores the latest generated answer from the AI.
-
-Example:
+In summary turn If any reason Summary was not generated , then prevent the messages
+If true then deleted messages , if False then summary is not generated that way avoid to delete messages
 
 ```python
-"The capital of India is New Delhi."
+True
 ```
-
 ---
 
 # Node Explanation
@@ -243,11 +253,11 @@ Then execution moves to the next node.
 
 ## 2. Conditional Edge
 
-After `input_handler`, the graph decides whether summarization is required.
+After `Responder`, the graph decides whether summarization is required.
 
 ### Condition
 
-After Every 5 valid chat turns the graph routes to:
+After Every 5(SUMMARY_COUNTER) valid chat turns the graph routes to:
 
 ```text
 summarizer
@@ -341,7 +351,7 @@ Only recent messages are retained.
 
 The agent stores mood history.
 
-So Every 10 turns:
+So Every 10(MOOD_HISTORY_COUNTER) turns:
 
 - Old mood history is cleared.
 - A fresh mood tracking cycle begins.
@@ -352,7 +362,7 @@ This prevents unlimited growth of mood data.
 
 # Edge Flow Explanation
 
-<img width="194" height="531" alt="Task-1_workflow" src="https://github.com/user-attachments/assets/0b9499fe-e95d-4b51-9696-f0c1526bc2d5" />
+<img width="207" height="531" alt="image" src="https://github.com/user-attachments/assets/40e9899b-fbcd-441f-8b59-3b1bd0278bdc" />
 
 ### Flow Summary
 
@@ -361,19 +371,19 @@ This prevents unlimited growth of mood data.
 ```text
 START
 → input_handler
-→ responder
 → memory_updater
+→ responder
 → END
 ```
 
-#### Every 5th Turn
+#### Every 5th(SUMMARY_COUNTER) Turn
 
 ```text
 START
 → input_handler
-→ summarizer
-→ responder
 → memory_updater
+→ responder
+→ summarizer
 → END
 ```
 

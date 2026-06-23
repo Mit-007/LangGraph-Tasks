@@ -47,10 +47,13 @@ Before running this project, you need to configure the required API keys and cre
 ### Environment Variables
 
 ```env
-GOOGLE_API_KEY=""
-PINECONE_API_KEY=""
-TAVILY_API_KEY=""
-INDEX_NAME=""
+GOOGLE_API_KEY="xxxxxx"
+PINECONE_API_KEY="xxxxxx"
+TAVILY_API_KEY="xxxxxx"
+INDEX_NAME="Your_index_name"
+DB_PATH_OF_COLLECTION_TASK_3 =  "DATA.db_File_Path"
+DB_PATH_OF_CHAT_HISTORY_TASK_3 = "HISTORY.db_File_Path"
+DB_PATH_OF_CHAT_HISTORY_TASK_4 = "HISTORY.db_File_Path" 
 ```
 
 ### 1️⃣ Google API Key (Gemini)

@@ -1,16 +1,17 @@
 from app.utils.state.state_Doc_researcher import *
-from app.services.call_llm import llm_Doc_researcher as llm
+from app.services.call_llm import llm_Doc_researcher 
 from app.services.call_llm import embedding_model
 from langgraph.types import Send
 from langchain_pinecone import PineconeVectorStore
 from app.services.logger import logger
-from app.core.config import INDEX_NAME
-
+from app.core.config import INDEX_NAME ,PINECONE_API_KEY
+from app.core.constant import MAX_SUB_QUERY_FOR_DOC , TOP_K
 
 # ============
 # orchestator_Doc_researcher
 # ============
 def orchestator_Doc_researcher(state: Doc_researcher_State) -> Doc_researcher_State:
+    """Generate sub-queries from the input query for worker nodes."""
     logger.info("Doc_researcher:-orchestrator")
     try:
         topic = state.get("topic")
@@ -34,12 +35,17 @@ def orchestator_Doc_researcher(state: Doc_researcher_State) -> Doc_researcher_St
         - Cover the essential aspects of the topic.
         - Avoid overlap.
         - Generate only the minimum number of queries needed.
-        - maximum you create 5 sun query.
+        - maximum you create {MAX_SUB_QUERY_FOR_DOC} sub query.
         - if not need more sub query divison then try to avoid it.
 
         Return only a Python list of strings.
         """
 
+        llm = llm_Doc_researcher()
+
+        if not llm:
+            raise ValueError("LLM service is not available.")
+        
         structured_llm = llm.with_structured_output(Doc_researcher_llm_sceama)
 
         result = structured_llm.invoke(prompt_orchestator_Doc_researcher)
@@ -62,6 +68,7 @@ def orchestator_Doc_researcher(state: Doc_researcher_State) -> Doc_researcher_St
 # route_Doc_researcher_worker
 # ============    
 def route_Doc_researcher_worker(state: Doc_researcher_State):
+    """Route to a worker node using the send() API."""
     logger.info("Doc_researcher:-route function")
 
     try:
@@ -95,18 +102,30 @@ def route_Doc_researcher_worker(state: Doc_researcher_State):
 # worker_Doc_researcher
 # ============
 def worker_Doc_researcher(state: Doc_researcher_worker_State) -> Doc_researcher_State:
+    """Execute the given task and generate the output."""
     logger.info("Doc_researcher:-worker")
     try:
         sub_query = state.get("sub_query")
         if not sub_query:
             raise ValueError("sub_query is empty")
 
+        if not PINECONE_API_KEY:
+            raise ValueError("PINECONE_API_KEY is missing. Please set it in your .env file.")
+        
+        emb_model = embedding_model()
+
+        if emb_model == None :
+            raise ValueError("embedding model service is not available.")
+        
+        if not INDEX_NAME:
+            raise ValueError("INDEX_NAME is missing. Please set it in your .env file.")
+
         vectorstore = PineconeVectorStore(
             index_name=INDEX_NAME,
-            embedding=embedding_model
+            embedding=emb_model
         )
 
-        results = vectorstore.similarity_search(sub_query,k=1)
+        results = vectorstore.similarity_search(sub_query,k=TOP_K)
 
         context = "\n\n".join(
             doc.page_content for doc in results
@@ -134,6 +153,7 @@ def worker_Doc_researcher(state: Doc_researcher_worker_State) -> Doc_researcher_
 # aggregater_Doc_researcher
 # ============
 def aggregater_Doc_researcher(state: Doc_researcher_State) -> Doc_researcher_State:
+    """Combine the outputs from all worker nodes."""
     logger.info("Doc_researcher:-aggregator Node")
     try:
         workers_output = state.get("workers_output")
@@ -174,6 +194,11 @@ def aggregater_Doc_researcher(state: Doc_researcher_State) -> Doc_researcher_Sta
         - Include a brief conclusion summarizing the key findings.
         - Return ONLY the final report text.
         """
+
+        llm = llm_Doc_researcher()
+
+        if not llm:
+            raise ValueError("LLM service is not available.")
 
         structured_llm = llm.with_structured_output(Doc_researcher_aggregator_sceama)
 

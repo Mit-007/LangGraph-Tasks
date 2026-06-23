@@ -1,5 +1,5 @@
 from app.utils.state.state_DB_researcher import *
-from app.services.call_llm import llm_DB_researcher as llm
+from app.services.call_llm import llm_DB_researcher 
 from langgraph.types import Send
 from app.services.logger import logger
 import sqlite3
@@ -8,9 +8,13 @@ import sqlite3
 # get_schema_list
 # ============
 def get_schema_list(state: DB_researcher_State) -> DB_researcher_State:
+    """Extract the schemas of all collections in the database."""
     logger.info("DB_researcher:-get_schema_list")
 
     try:
+        if not state["db_path"]:
+                raise ValueError("Not Provide Valid DB_PATH is missing.")
+
         conn = sqlite3.connect(state["db_path"])
         cursor = conn.cursor()
 
@@ -46,6 +50,7 @@ def get_schema_list(state: DB_researcher_State) -> DB_researcher_State:
 # orchestator_DB_researcher
 # ============
 def orchestator_DB_researcher(state: DB_researcher_State) -> DB_researcher_State:
+    """Generate sub-queries from the input query for worker nodes."""
     logger.info("DB_researcher:-orchestrator")
 
     try:
@@ -118,6 +123,11 @@ def orchestator_DB_researcher(state: DB_researcher_State) -> DB_researcher_State
         ]
         """
 
+        llm = llm_DB_researcher()
+
+        if not llm:
+            raise ValueError("LLM service is not available.")
+
         structured_llm = llm.with_structured_output(DB_researcher_llm_schema)
         result = structured_llm.invoke(prompt_orchestator_DB_researcher)
 
@@ -137,6 +147,7 @@ def orchestator_DB_researcher(state: DB_researcher_State) -> DB_researcher_State
 # route_DB_researcher_worker
 # ============
 def route_DB_researcher_worker(state: DB_researcher_State):
+    """Route to a worker node using the send() API."""
     logger.info("DB_researcher:-route function")
 
     try:
@@ -166,11 +177,16 @@ def route_DB_researcher_worker(state: DB_researcher_State):
 # worker_DB_researcher
 # ============
 def worker_DB_researcher(state: DB_researcher_worker_State) -> DB_researcher_State:
+    """Execute the given task and generate the output."""
     logger.info("DB_researcher:-worker")
 
     conn = None
 
     try:
+
+        if not state["db_path"]:
+                raise ValueError("Not Provide Valid DB_PATH is missing.")
+
         conn = sqlite3.connect(state["db_path"])
         cursor = conn.cursor()
 
@@ -198,6 +214,7 @@ def worker_DB_researcher(state: DB_researcher_worker_State) -> DB_researcher_Sta
 # aggregater_DB_researcher
 # ============
 def aggregater_DB_researcher(state: DB_researcher_State) -> DB_researcher_State:
+    """Combine the outputs from all worker nodes."""
     logger.info("DB_researcher:-aggregator Node")
 
     try:
@@ -207,7 +224,7 @@ def aggregater_DB_researcher(state: DB_researcher_State) -> DB_researcher_State:
             logger.warning("No workers_output found")
 
             return {
-                "final_result": "Unable to answer the question because no data was retrieved."
+                "final_result": "Unable to answer the question because no data was fetch from DATABASE"
             }
 
         final_report_prompt = f"""
@@ -262,6 +279,11 @@ def aggregater_DB_researcher(state: DB_researcher_State) -> DB_researcher_State:
 
         Generate the final report now.
         """
+
+        llm = llm_DB_researcher()
+
+        if not llm:
+            raise ValueError("LLM service is not available.")
 
         structured_llm = llm.with_structured_output(
             DB_researcher_aggregator_schema

@@ -2,6 +2,7 @@ from app.utils.nodes import *
 from app.utils.states import Agent_schema
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import StateGraph,START,END
+from app.core.config import DB_PATH_OF_CHAT_HISTORY
 import sqlite3
 
 builder = StateGraph(Agent_schema)
@@ -23,7 +24,7 @@ builder.add_edge("generate_fix","draft_report")
 builder.add_conditional_edges("draft_report",route_human_review_for_draft,{'human_review_for_draft' : "human_review_for_draft",'END':END})
 builder.add_edge("human_review_for_draft",END)
 
-connection = sqlite3.connect(database="app/db/agent_history.db",check_same_thread=False)
+connection = sqlite3.connect(database=DB_PATH_OF_CHAT_HISTORY,check_same_thread=False)
 
 checkpointers = SqliteSaver(conn=connection)
 

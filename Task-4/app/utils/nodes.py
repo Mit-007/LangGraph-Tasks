@@ -4,12 +4,13 @@ from langgraph.types import interrupt
 from app.services.prompt_services import *
 from app.services.llm_services import llm
 from app.services.logger import logger
-
+from app.core.constant import ISSUE_CONFIDENCE_SCORE
 
 # =============
 # ingest_transcript
 # =============
-def ingest_transcript(state : Agent_schema) ->Agent_schema: 
+def ingest_transcript(state : Agent_schema) ->Agent_schema:
+    """Validate the provided transcript.""" 
     logger.info("Node:-ingest_transcript")
     try:
         transcript = state.call_transcript
@@ -32,6 +33,7 @@ def ingest_transcript(state : Agent_schema) ->Agent_schema:
 # extract_issues
 # ============= 
 def extract_issues(state : Agent_schema) ->Agent_schema:
+    """Extract issues from the transcript."""
     logger.info("Node:-extract_issues")
     try:
         transcript = state.call_transcript
@@ -41,7 +43,10 @@ def extract_issues(state : Agent_schema) ->Agent_schema:
 
         logger.debug("👨 Human : Generate Issues")
 
-        issue_extraction_prompt = ISSUE_EXTRACTION_PROMPT.format(transcript = state.call_transcript)
+        if not llm:
+            raise ValueError("LLM service is not available.")
+
+        issue_extraction_prompt = ISSUE_EXTRACTION_PROMPT.format(ISSUE_CONFIDENCE_SCORE = ISSUE_CONFIDENCE_SCORE ,transcript = state.call_transcript)
         structured_llm = llm.with_structured_output(issues_extract_schema)
         result = structured_llm.invoke(issue_extraction_prompt)
 
@@ -62,6 +67,7 @@ def extract_issues(state : Agent_schema) ->Agent_schema:
 # route_human_review_for_extract_issues
 # =============
 def route_human_review_for_extract_issues(state: Agent_schema) -> Literal["human_review_for_extract_issues", "classify_severity"]:
+    """Route to human review if any extracted issue has a low confidence score."""
     logger.info("Node:-route_human_review_for_extract_issues")
     try : 
 
@@ -71,7 +77,7 @@ def route_human_review_for_extract_issues(state: Agent_schema) -> Literal["human
             raise ValueError("Issues List is empty")
         
         for issue in state.issues:
-            if issue["confidence_score"] < 0.7 :
+            if issue["confidence_score"] < ISSUE_CONFIDENCE_SCORE :
                 return "human_review_for_extract_issues"
 
         return "classify_severity"
@@ -85,10 +91,14 @@ def route_human_review_for_extract_issues(state: Agent_schema) -> Literal["human
 # extract_issues
 # =============
 def human_review_for_extract_issues(state : Agent_schema) -> Agent_schema :
+    """
+    Raise a human approval interrupt for issue extraction. 
+    If the user rejects the extracted issues, replace the issue list with the user-provided issue list.
+    """    
     logger.info("Node:-human_review_for_extract_issues")
     list_low_score_issues = []
     for issue in state.issues:
-        if issue["confidence_score"] < 0.7 :
+        if issue["confidence_score"] < ISSUE_CONFIDENCE_SCORE :
             list_low_score_issues.append(issue)
 
 
@@ -129,6 +139,7 @@ def human_review_for_extract_issues(state : Agent_schema) -> Agent_schema :
 # classify_severity
 # =============
 def classify_severity(state : Agent_schema) ->Agent_schema:
+    """Classify the extracted issues into the following severity levels: low, medium, high, and critical."""
     logger.info("Node:-classify_severity")
     try :
         issues = state.issues
@@ -137,6 +148,9 @@ def classify_severity(state : Agent_schema) ->Agent_schema:
             raise ValueError("Issues List is empty")
         
         logger.debug("👨 Human : Generate Severity")
+
+        if not llm:
+            raise ValueError("LLM service is not available.")
 
         severity_classify_prompt = SEVERITY_CLASSIFY_PROMPT.format(issues = state.issues)
         structured_llm = llm.with_structured_output(severity_classify_schema)
@@ -158,6 +172,7 @@ def classify_severity(state : Agent_schema) ->Agent_schema:
 # generate_fix
 # =============
 def generate_fix(state : Agent_schema) ->Agent_schema:
+    """Generate fixes for the identified issues."""
     logger.info("Node:-generate_fix")
     try:
 
@@ -167,6 +182,9 @@ def generate_fix(state : Agent_schema) ->Agent_schema:
             raise ValueError("severity List is empty")
         
         logger.debug("👨 Human : Generate fixes")
+
+        if not llm:
+            raise ValueError("LLM service is not available.")
 
         generate_fixes_prompt= GENERATE_FIXES_PROMPT.format(issues_with_severity = state.severity)
         structured_llm = llm.with_structured_output(generate_fixes_schema)
@@ -182,7 +200,8 @@ def generate_fix(state : Agent_schema) ->Agent_schema:
     except Exception as e:
         logger.error(f"❌ Exception: {e}")
         return {
-            'fixes' : []
+            'fixes' : [],
+            'overall_score' : 0.0
         }
 
 
@@ -190,6 +209,16 @@ def generate_fix(state : Agent_schema) ->Agent_schema:
 # draft_report
 # =============
 def draft_report(state : Agent_schema) ->Agent_schema:
+    """
+    Make a final draft report.
+
+    Draft_report = {
+    "issues": list[str],
+    "severity_summary": list[str],
+    "recommended_fixes": list[str],
+    "overall_score": float
+    }
+    """
     logger.info("Node:-draft_report")
 
     try : 
@@ -221,6 +250,7 @@ def draft_report(state : Agent_schema) ->Agent_schema:
 # human_review_for_draft
 # =============
 def human_review_for_draft(state : Agent_schema) ->Agent_schema:
+    """Process human approval and apply the requested changes in draft."""
     logger.info("Node:-human_review")
 
     interrupt_mess = f"""\n i make final report draft :\n{state.draft_report}\n\nIf you wnat to change in draft report give changes Dict Of Solution ,or not want change that section give 'None' """
@@ -255,6 +285,7 @@ def human_review_for_draft(state : Agent_schema) ->Agent_schema:
 # route_human_review_for_draft
 # =============
 def route_human_review_for_draft(state: Agent_schema) -> Literal["human_review", "END"]:
+    """Route to the Human approval node for draft review."""
     logger.info("Node:-route_human_review")
 
     try:

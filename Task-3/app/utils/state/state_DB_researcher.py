@@ -1,8 +1,8 @@
-from typing import TypedDict , Annotated ,Any
+from typing import TypedDict , Annotated 
 from pydantic import BaseModel
 import operator
 
-
+#  -> llm output schema
 class Db_query_schema(BaseModel):
     query_name  : str
     query : str
@@ -14,12 +14,14 @@ class DB_researcher_aggregator_schema(BaseModel):
     final_answer : str
 
 
-
+# -> worker State 
 class DB_researcher_worker_State(TypedDict):
     sub_query : Db_query_schema
     result : str
     db_path : str
 
+
+#  -> Main Graph state
 class DB_researcher_State(TypedDict):
     query : str
     db_path : str
