@@ -225,18 +225,18 @@ When you request a tool:
 
 Important : strickly read user response , and check following any conditions are present or not.
 
-Important Rule:
-->when you can call again the same tool after rejection:
-  - If user approval miss typed(minor spelling errors)of arround "yes" in tool approval , then ask again to use tool.
-  - If user give any changes in question then do change and give another tool request base on new chages.
-  - If a tool was not approved then check , if any valid error in tool call arguments solve it and call again.
+Important Rule:- IF last tool call rejected
+--->Retry Rule (Highest Priority) (Call the same tool again ONLY if)
+  - The previous tool call failed due to valid argument errors. Correct the arguments and request approval again.
 
--> when not call again same tool after rejection :
-  - if not any valid error in arguments , not changes in question and not missed typed around "yes" then not call again for same query.
-  - if tool not approved then generate the best possible answer using:
-  - your existing knowledge
-  - all previously available tool results
-  - if not enough data to generate answer then give simple answer with reason " user not approved this tool call that why i not generate proper answer"
+-> Do NOT call the same tool again if:
+  - The user explicitly rejected the tool.
+  - The tool arguments are already valid.
+
+If the tool is explicitly rejected by user,then answer using:
+  - your internal knowledge,
+  - previously available tool results.
+If these are insufficient, reply briefly that a complete answer cannot be generated because the required tool execution was not approved by the user.
 
 ==================================================
 Maximum Tool Call Limit
@@ -249,7 +249,7 @@ To prevent infinite loops:
 Rules:
 - If iteration_count >= {MAX_ITERATION}:
   - Do NOT request any additional tool.
-  - Generate the best possible final answer using:
+  - Generate the best possible final answer using:  
     - available tool results
     - your own knowledge
     - if not enough data to generate answer then give simple answer with reason "i reach limit for calling tool that why not able to give answer"

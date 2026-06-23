@@ -4,7 +4,7 @@ from langgraph.types import interrupt
 from app.services.prompt_services import *
 from app.services.llm_services import llm
 from app.services.logger import logger
-
+from app.core.constant import ISSUE_CONFIDENCE_SCORE
 
 # =============
 # ingest_transcript
@@ -46,7 +46,7 @@ def extract_issues(state : Agent_schema) ->Agent_schema:
         if not llm:
             raise ValueError("LLM service is not available.")
 
-        issue_extraction_prompt = ISSUE_EXTRACTION_PROMPT.format(transcript = state.call_transcript)
+        issue_extraction_prompt = ISSUE_EXTRACTION_PROMPT.format(ISSUE_CONFIDENCE_SCORE = ISSUE_CONFIDENCE_SCORE ,transcript = state.call_transcript)
         structured_llm = llm.with_structured_output(issues_extract_schema)
         result = structured_llm.invoke(issue_extraction_prompt)
 
@@ -77,7 +77,7 @@ def route_human_review_for_extract_issues(state: Agent_schema) -> Literal["human
             raise ValueError("Issues List is empty")
         
         for issue in state.issues:
-            if issue["confidence_score"] < 0.7 :
+            if issue["confidence_score"] < ISSUE_CONFIDENCE_SCORE :
                 return "human_review_for_extract_issues"
 
         return "classify_severity"
@@ -98,7 +98,7 @@ def human_review_for_extract_issues(state : Agent_schema) -> Agent_schema :
     logger.info("Node:-human_review_for_extract_issues")
     list_low_score_issues = []
     for issue in state.issues:
-        if issue["confidence_score"] < 0.7 :
+        if issue["confidence_score"] < ISSUE_CONFIDENCE_SCORE :
             list_low_score_issues.append(issue)
 
 

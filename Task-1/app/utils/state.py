@@ -7,7 +7,6 @@ class AgentState(TypedDict):
     summary : str
     turn_count : int
     mood : list[Literal["positive","neutral","negative"]]
-    answer : str
     summary_status : bool   #if generate then =>True , else => False
 
 class ouput_schema(BaseModel):

@@ -1,5 +1,4 @@
-from typing import TypedDict, Literal ,Optional
-from typing import Literal, Optional, Union
+from typing import TypedDict, Literal ,Optional , Union
 from pydantic import BaseModel
 
 # =========
@@ -46,7 +45,6 @@ class AgentState(TypedDict):
     question : str
     final_answer : str
     iteration_count : int
-    user_approval : str
     tool_call : bool
     through : str
     tool_name: Optional[Literal["calculator", "web_search", "python_repl"]] = None

@@ -83,40 +83,31 @@ def tool_node(state : AgentState):
     tool_name = state['tool_name']
     tool_answer = None
 
-    # --> call calculator
-    if tool_name=='calculator':
-        approval = interrupt("can i use a calculator tool (yes/no)")
-
-        if approval.lower() == "yes": 
-            tool_answer = calculator.invoke(state['tool_args'] )
-
-        else : tool_answer=f"not approval for use calculator tool , user_response : {approval}"
-
-
-    # --> call Web Search
-    if tool_name=='web_search':
-
-        approval = interrupt("can i use a web search tool (yes/no)")
-
-        if approval.lower() == "yes": 
-            tool_answer = web_search.invoke(state['tool_args'])
-
-        else : tool_answer=f"not approval for use web_search tool , user_response : {approval}"
-
-        
-        
-    # --> call pyhton repl
-    if tool_name =='python_repl':
-
-        approval = interrupt("can i use a python_repl tool (yes/no)")
-
-        if approval.lower() == "yes": 
-            tool_answer = python_repl.invoke(state['tool_args'])
-
-        else : tool_answer=f"not approval for use pyhton_repl tool , user_response : {approval}"
-    
+    # --> Human Approval for Tool Usage :
+    approval = interrupt(f"can i use a {tool_name} tool (yes/no)")
 
     try:
+        # -->Human Approved the call tool :
+        if approval.lower() == "yes": 
+            # --> call calculator
+            if tool_name=='calculator':
+                tool_answer = calculator.invoke(state['tool_args'])
+
+            # --> call Web Search
+            elif tool_name=='web_search':
+                tool_answer = web_search.invoke(state['tool_args'])
+
+            # --> call pyhton repl
+            elif tool_name =='python_repl':
+                tool_answer = python_repl.invoke(state['tool_args'])
+
+            # --> Not valid tool name 
+            else :
+                tool_answer={"Answer":f"{tool_name} is Not Valid Tool_name"}
+
+        
+        else : tool_answer={"Answer" : f"not approval for use {tool_name} tool , user_response : {approval}"}
+
         tool_dict = {
             "tool_name":tool_name,
             "tool_args":state['tool_args'],
@@ -134,7 +125,7 @@ def tool_node(state : AgentState):
     except Exception as e:
         logger.exception(f"Error in tool_node: {e}")
 
-        error_message = f"Tool execution failed: {str(e)}"
+        error_message = { "Error" : f"Tool execution failed: {str(e)}"}
 
         tool_dict = {
             "tool_name": state.get("tool_name"),

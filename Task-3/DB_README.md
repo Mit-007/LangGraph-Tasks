@@ -218,11 +218,9 @@ Configure your LLM API key in the `.env` file:
 
 ```env
 GOOGLE_API_KEY="your_google_api_key"
+DB_PATH_OF_COLLECTION_TASK_3 =  "DATA.db_File_Path"
+DB_PATH_OF_CHAT_HISTORY_TASK_3 = "HISTORY.db_File_Path"
 ```
-
-**Notes :The SQLite database file ( `app/db/Task_3_data.db`) should already exist and contain the your required tables and sample data.
-so upload data Into this file only.
-**
 
 > **Note:** Since SQLite is a file-based database, no additional database installation or configuration is needed.
 

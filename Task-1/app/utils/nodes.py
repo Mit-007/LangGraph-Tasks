@@ -33,29 +33,40 @@ def input_handler(state : AgentState)->AgentState:
 
 
 # ==========
-# route_after_input_handler
+# memory_updater
 # ==========
-def route_after_input_handler(state:AgentState)->Literal["responder","summarizer"]:
-    """Route to the first summary node if the current turn value matches the summary counter."""
+def memory_updater(state: AgentState) -> AgentState:
+    """Optimize memory after the summary and mood counter reach their configured limits."""
     try:
-        message = state["messages"][-1].strip()
 
-        if not message:
-            raise ValueError("Message cannot be empty")
+        message_list = state["messages"]
+        mood_list = state["mood"]
+        new_summary_status = state['summary_status']
         
+        # -----> memory menagement after summary :
 
-        if SUMMARY_COUNTER == 1 :
-            return 'summarizer'
-        
-        elif state['turn_count'] % SUMMARY_COUNTER == 1 and state['turn_count']!= 1:
-            return "summarizer"
-        
-        else :
-            return "responder"
-        
+        if state["turn_count"] % SUMMARY_COUNTER == 1 or SUMMARY_COUNTER==1:
+            # =============
+            #  if some reasone summary not generated then skip the remove message step, till next summary not generated 
+            # ============
+            if state['summary_status'] == True :
+                message_list = state["messages"][-1:]
+                new_summary_status = False
+
+
+        # -----> memory menagement after reach Mood counter limit :
+        if state["turn_count"] % MOOD_HISTORY_COUNTER  == 1 or MOOD_HISTORY_COUNTER == 1:
+                mood_list = []
+
+        return {
+            "messages": message_list,
+            "mood": mood_list,
+            'summary_status' : new_summary_status
+        }
+
     except Exception as e:
-        logger.error(f"{e}")
-        return 'responder'
+        logger.error(f"Error in memory_updater: {e}")
+        return {}
 
 
 # ==========
@@ -134,6 +145,28 @@ def responder(state: AgentState) -> AgentState:
 
 
 # ==========
+# route_after_Responder
+# ==========
+def route_after_responder(state:AgentState)->Literal["responder","summarizer"]:
+    """Route to the first summary node if the current turn value matches the summary counter."""
+    try:
+        message = state["messages"][-1].strip()
+
+        if not message:
+            raise ValueError("Message cannot be empty")
+        
+        elif state['turn_count'] % SUMMARY_COUNTER == 0:
+            return "summarizer"
+        
+        else :
+            return "END"
+        
+    except Exception as e:
+        logger.error(f"{e}")
+        return 'END'
+
+
+# ==========
 # summarizer
 # ==========
 def summarizer(state: AgentState) -> AgentState:
@@ -149,7 +182,7 @@ def summarizer(state: AgentState) -> AgentState:
         if not llm:
             raise ValueError("LLM service is not available.")
 
-        messages_for_summary = state["messages"][:-1]
+        messages_for_summary = state["messages"]
 
         structured_llm = llm.with_structured_output(summary_schema)
 
@@ -206,49 +239,3 @@ def summarizer(state: AgentState) -> AgentState:
             "messages": state["messages"],
             "summary_status" :False
         }
-
-
-# ==========
-# memory_updater
-# ==========
-def memory_updater(state: AgentState) -> AgentState:
-    """Optimize memory after the summary and mood counter reach their configured limits."""
-    try:
-        if not state["messages"][-1]:
-            state["messages"].pop()
-            return {
-                "messages": state["messages"]
-            }
-        
-        message_list = state["messages"]
-        mood_list = state["mood"]
-        
-        # -----> memory menagement after summary :
-
-        if state["turn_count"] % SUMMARY_COUNTER == 1:
-            # =============
-            #  if some reasone summary not generated then skip the remove message step, till next summary not generated 
-            # ============
-            if state['summary_status'] == True :
-                message_list = state["messages"][-2:]
-
-
-        # -----> memory menagement after reach Mood counter limit :
-        if state["turn_count"] % MOOD_HISTORY_COUNTER  == 1:
-
-            if len(state['mood']) > 0 :
-                mood_list = [state['mood'][-1]]
-
-            else :
-                mood_list = []
-
-        return {
-            "messages": message_list,
-            "mood": mood_list,
-            'summary_status' : False
-        }
-
-    except Exception as e:
-        logger.error(f"Error in memory_updater: {e}")
-
-        return {}

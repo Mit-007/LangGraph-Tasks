@@ -3,3 +3,6 @@ MAX_ITERATION = 10
 
 # set value for tool DDGS, the llm pass minimum this value for better result
 MIN_FETCH_RESULTS_DDGS = 3
+
+# SET limit for Search tool fetch Maximum result .
+MAX_FETCH_RESULT_DDGS = 10

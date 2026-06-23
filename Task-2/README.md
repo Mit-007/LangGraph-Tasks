@@ -367,7 +367,7 @@ This project demonstrates:
 - Python
 - LangGraph
 - LangChain
-- OpenAI / LLM Provider
+- Gemini LLM Models
 - Pydantic
 
 ---

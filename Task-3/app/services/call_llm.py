@@ -17,6 +17,7 @@ def embedding_model():
         )
 
     except Exception as e:
+        logger.error(f"can not get embedding Model , {e}")
         embedding_model = None
 
     return embedding_model 
@@ -33,6 +34,7 @@ def llm():
             temperature=TEMPERATURE
         )
     except Exception as e:
+        logger.error(f"can not get llm_Model , {e}")
         llm = None
 
     return llm 
@@ -48,6 +50,7 @@ def llm_DB_researcher():
             temperature=TEMPERATURE
         )
     except Exception as e:
+        logger.error(f"can not get DB_llm_Model , {e}")
         llm = None
 
     return llm 
@@ -63,6 +66,7 @@ def llm_web_researcher():
             temperature=TEMPERATURE
         )
     except Exception as e:
+        logger.error(f"can not get web_llm_Model , {e}")
         llm = None
 
     return llm 
@@ -78,6 +82,7 @@ def llm_Doc_researcher():
             temperature=TEMPERATURE
         )
     except Exception as e:
+        logger.error(f"can not get Doc_llm_Model , {e}")
         llm = None
 
     return llm 

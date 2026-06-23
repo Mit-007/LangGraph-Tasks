@@ -3,6 +3,7 @@ from app.utils.state.states import MainState
 from langgraph.graph import StateGraph,START,END
 from langgraph.checkpoint.sqlite import SqliteSaver
 from app.core.config import DB_PATH_OF_CHAT_HISTORY
+from app.services.logger import logger
 import sqlite3
 
 builder = StateGraph(MainState)

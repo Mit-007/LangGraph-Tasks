@@ -1,3 +1,5 @@
+from app.core.constant import ISSUE_CONFIDENCE_SCORE
+
 ISSUE_EXTRACTION_PROMPT = """
 You are an expert Issue Extraction AI.
 
@@ -26,8 +28,8 @@ RULES
        - Customers are unable to complete payments during checkout.
        - Website pages take more than 10 seconds to load.
 8. Provide a confidence_score between 0.0 and 1.0: - 
-    Use scores ≥ 0.7 for issues that are clearly real. - 
-    Use scores < 0.7 when the issue is uncertain, vague, or possibly not a real issue.
+    Use scores ≥ {ISSUE_CONFIDENCE_SCORE} for issues that are clearly real. - 
+    Use scores < {ISSUE_CONFIDENCE_SCORE} when the issue is uncertain, vague, or possibly not a real issue.
 9. Use lower confidence scores when the transcript contains assumptions, uncertainty, or incomplete information.
 10. If no valid issues exist, return an empty list.
 

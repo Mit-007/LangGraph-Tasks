@@ -1,6 +1,7 @@
 from langchain_core.tools import tool
 from ddgs import DDGS
 from langchain_experimental.tools import PythonREPLTool
+from app.core.constant import MAX_FETCH_RESULT_DDGS
 
 # ============
 # Calculator Tool
@@ -19,6 +20,7 @@ def calculator(first_nums: float, second_nums: float, operation: str) -> dict:
     A dictionary containing the computed result or an error message.
     """
     try:
+        operation = operation.strip().lower()
         if operation == "add":
             result = first_nums + second_nums
         elif operation == "sub":
@@ -55,6 +57,15 @@ def web_search(query: str,max_result:int) -> dict:
     """
 
     try:
+        if query.strip()=="":
+            raise ValueError("Query Is Empty")
+        
+        if max_result <= 0 :
+            raise ValueError("Max_result Must be positive")
+        
+        if max_result > MAX_FETCH_RESULT_DDGS:
+            raise ValueError(f"Max_result is too high,not bigger than {MAX_FETCH_RESULT_DDGS} allowed")
+
         with DDGS() as ddgs:
             results = list(
                 ddgs.text(
@@ -64,7 +75,7 @@ def web_search(query: str,max_result:int) -> dict:
             )
 
         if not results:
-            return "No results found."
+            return {"Answer":"No results found."}
 
         formatted_results = []
 
@@ -109,9 +120,9 @@ def python_repl(code: str) -> dict:
 
         for item in FORBIDDEN:
             if item.lower() in code_lower:
-                return f"Blocked: '{item}' is not allowed."
+                return {"Warning": f"Blocked: '{item}' is not allowed."}
 
-        return {str(py_repl.invoke(code))}
+        return { "Answer" : str(py_repl.invoke(code))}
 
     except Exception as e:
-        return {f"Error: {e}"}
+        return {"Error": f"{e}"}
